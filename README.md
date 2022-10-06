@@ -5,3 +5,7 @@ This test project is using https://json.projectxi.my.id API that ive made with n
 ## Tools 
 - Node js - 16
 - Linux - Ubuntu
+
+## Guide
+1. npm install
+2. npm start
