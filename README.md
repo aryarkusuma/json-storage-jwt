@@ -13,3 +13,5 @@ A simple JWT auth implementation for storing JSON data,
 ## Guide
 1. npm install
 2. npm start
+
+documentation - https://docs.google.com/document/d/1Bj6hg1cWREWsts-Fyo_KFAN-JUd0gA1SJJEJxjvg8_Y/edit?usp=sharing
