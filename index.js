@@ -113,7 +113,7 @@ async function deleteFileList(username, fileId) {
 
     if(user){
      const update = { $pull : { "fileList": { 
-      _id: fileId, 
+      id: fileId, 
     }}};
 
      const result = await client.db("userdb").collection('file-list').updateOne({_id : username}, update);
@@ -151,6 +151,7 @@ async function delJson(req, res, next) { //Retrive Saved Json
     const response = await fetch('https://json.projectxi.my.id/api/del-json?id=' + id);
     const data = await response.json();
     console.log(data);
+    await deleteFileList(req.username.username, id)
     return res.json(data);
   } catch {
     return res.sendStatus(403);
@@ -159,7 +160,7 @@ async function delJson(req, res, next) { //Retrive Saved Json
 
 async function saveJson(req, res, next) { //Retrive Saved Json
   try{
-    const response = await fetch("https://633eb34d640af72e3ebcce56--json-saver.netlify.app/api/save-json", 
+    const response = await fetch("https://json.projectxi.my.id/api/save-json", 
     {
       method: 'POST',
       headers: {
@@ -169,8 +170,11 @@ async function saveJson(req, res, next) { //Retrive Saved Json
     });
     
     const data = await response.json();
+    await addFileList(req.username.username,data.storedId);
+    
     console.log(data);
     res.json((data));
+
   } catch {
     return res.sendStatus(403);
   }
@@ -195,27 +199,51 @@ app.get("/", (req, res) => {
   return res.json({ message: "Welcome To JSON File Storage" });
 });
 
-const usercheck = async (req, res, next) => {
+const userCheckLogin = async (req, res, next) => {
     //check username and password user
       if(typeof(req.query.username) == 'undefined' || typeof(req.query.password) == 'undefined'){ // kita bisa menambahkan logika pemeriksaan nantinya dengan membuat / menggunakan suatu library 
-        return res.json({ message: "Login Failed" });
+        return res.json({ message: "Login gagal" });
       } else{
-        req.username = String(req.query.username);
-        req.password = String(req.query.username);
+        req.username = req.query.username.toString();
+        req.password = req.query.password.toString();
+        console.log(req.username)
+        console.log(req.password)
 
         let valid = await login(req.username, req.password);
+        console.log(valid)
         if(valid){
+          console.log(valid);
           return next() 
         } else {
-          return res.json({ message: "Login Failed" });
+          return res.json({ message: "Login gagal" });
         }
       }
 }
 
-app.post("/login", usercheck, (req, res) => {
+const userCheckRegister = async (req, res, next) => {
+  //check username and password user
+    if(typeof(req.query.username) == 'undefined' || typeof(req.query.password) == 'undefined' || req.query.password == ''){ // kita bisa menambahkan logika pemeriksaan nantinya dengan membuat / menggunakan suatu library 
+      return res.json({ message: "Register gagal" });
+    } else{
+      req.username = req.query.username.toString();
+      req.password = req.query.password.toString();
+      console.log(req.username)
+      console.log(req.password)
+
+      let valid = await register(req.username, req.password);
+      console.log(valid)
+      if(valid){
+        console.log(valid);
+        return next() 
+      } else {
+        return res.json({ message: "Register gagal" });
+      }
+    }
+}
+
+app.get("/api/auth/register", userCheckRegister, (req, res) => {
   const token = jwt.sign({ username: req.username }, process.env.YOUR_SECRET_KEY);
-  return res
-    .cookie("at", token, {
+  return res.cookie("at", token, {
       httpOnly: true,
       secure: true,
     })
@@ -223,21 +251,31 @@ app.post("/login", usercheck, (req, res) => {
     .json({ message: "Login berhasil" });
 });
 
-app.get("/auth/profile", authorization, (req, res) => {
+app.get("/api/auth/login", userCheckLogin, (req, res) => {
+  const token = jwt.sign({ username: req.username }, process.env.YOUR_SECRET_KEY);
+  return res.cookie("at", token, {
+      httpOnly: true,
+      secure: true,
+    })
+    .status(200)
+    .json({ message: "Login berhasil" });
+});
+
+app.get("/api/auth/profile-jwt", authorization, (req, res) => {
   console.log(req.username)
   return res.json({ user: req.username });
 });
 
-app.get("/logout", authorization, (req, res) => {
+app.get("/api/auth/logout", authorization, (req, res) => {
   return res
     .clearCookie("at")
     .status(200)
     .json({ message: "Anda telah logout!" });
 });
 
-app.get("/service/get-json", authorization, getJson, (req,res) => {});
-app.get("/service/del-json", authorization, delJson, (req,res) => {});
-app.post("/service/save-json", authorization, saveJson, (req,res) => {});
+app.get("/api/service/get-json", authorization, getJson, (req,res) => {});
+app.get("/api/service/del-json", authorization, delJson, (req,res) => {});
+app.post("/api/service/save-json", authorization, saveJson, (req,res) => {});
 
 //app.post("/service/test", (req,res) => {return res.json({ data: req.body });});
 
