@@ -9,6 +9,130 @@ const app = express();
 app.use(cookieParser());
 app.use(bodyParser.json());
 
+//////////////////////////////////////////////////////////////////////////////////////////
+const { MongoClient } = require("mongodb");
+const bcrypt = require("bcrypt");
+// Connection URI
+const uri =
+  "mongodb+srv://arya:arya123@aryacluster.qc8jv.gcp.mongodb.net/?retryWrites=true&maxPoolSize=20&w=majority";
+// Create a new MongoClient
+const client = new MongoClient(uri);
+
+async function register(username,password) {
+  try {
+    // Connect the client to the server (optional starting in v4.7)
+    const salt = await bcrypt.genSalt(10);
+    const userPasswordHash = await bcrypt.hash(password, salt)
+    await client.connect();
+    // Establish and verify connection
+    await client.db("userdb").collection('user').insertOne({
+      _id: username, 
+      password: userPasswordHash, 
+      salt: salt,
+      created: new Date() 
+    });
+
+    await client.db("userdb").collection('file-list').insertOne({
+      _id: username, 
+      fileList: [], 
+      created: new Date() 
+    });
+
+    console.log("Connected successfully to server");
+
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
+}
+
+async function login(username,password) {
+  try {
+    // Connect the client to the server (optional starting in v4.7)
+    await client.connect();
+    // Establish and verify connection
+    const user = await client.db("userdb").collection('user').findOne({ _id: username });
+    console.log(user);
+
+    if(user){
+      const valid = await bcrypt.compare(password, user.password)
+
+      if(valid){
+        console.log(valid)
+        return valid
+      } else {
+        console.log("Incorrect Password")
+        return false
+      }
+    }
+    console.log("Connected successfully to server");
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
+}
+
+async function addFileList(username, fileId) {
+  try {
+    // Connect the client to the server (optional starting in v4.7)
+    await client.connect();
+    // Establish and verify connection
+    console.log("Connected successfully to server");
+    const user = await client.db("userdb").collection('file-list').findOne({
+       _id: username
+    });
+
+    console.log(user);
+
+    if(user){
+     const update = { $push : { "fileList": { 
+      id: fileId, 
+      created: new Date() 
+    }}};
+     const result = await client.db("userdb").collection('file-list').updateOne({_id : username}, update);
+     console.log(result);
+    }
+
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
+}
+
+async function deleteFileList(username, fileId) {
+  try {
+    // Connect the client to the server (optional starting in v4.7)
+    await client.connect();
+    // Establish and verify connection
+    console.log("Connected successfully to server");
+    const user = await client.db("userdb").collection('file-list').findOne({
+       _id: username
+    });
+
+    console.log(user);
+
+    if(user){
+     const update = { $pull : { "fileList": { 
+      _id: fileId, 
+    }}};
+
+     const result = await client.db("userdb").collection('file-list').updateOne({_id : username}, update);
+     console.log(result);
+    }
+
+  } finally {
+    // Ensures that the client will close when you finish/error
+    await client.close();
+  }
+}
+
+//register('ibubapak','bagaimana').catch(console.dir);
+//login('ibubapak', 'bagamimana');
+//addFileList('ibubapak','asdawd');
+//deleteFileList('ibubapak','asdawd');
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 async function getJson(req, res, next) { //Retrive Saved Json
   try{
     const id = req.query.id;
@@ -71,14 +195,20 @@ app.get("/", (req, res) => {
   return res.json({ message: "Welcome To JSON File Storage" });
 });
 
-const usercheck = (req, res, next) => {
+const usercheck = async (req, res, next) => {
     //check username and password user
       if(typeof(req.query.username) == 'undefined' || typeof(req.query.password) == 'undefined'){ // kita bisa menambahkan logika pemeriksaan nantinya dengan membuat / menggunakan suatu library 
         return res.json({ message: "Login Failed" });
       } else{
         req.username = String(req.query.username);
         req.password = String(req.query.username);
-        return next() 
+
+        let valid = await login(req.username, req.password);
+        if(valid){
+          return next() 
+        } else {
+          return res.json({ message: "Login Failed" });
+        }
       }
 }
 
@@ -109,7 +239,7 @@ app.get("/service/get-json", authorization, getJson, (req,res) => {});
 app.get("/service/del-json", authorization, delJson, (req,res) => {});
 app.post("/service/save-json", authorization, saveJson, (req,res) => {});
 
-app.post("/service/test", (req,res) => {return res.json({ data: req.body });});
+//app.post("/service/test", (req,res) => {return res.json({ data: req.body });});
 
 const start = (port) => {
   try {
@@ -122,5 +252,11 @@ const start = (port) => {
   }
 };
 
+
+
 start( process.env.PORT || 3000);
+
+
+
+
 
