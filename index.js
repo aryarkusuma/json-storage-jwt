@@ -24,23 +24,28 @@ async function register(username,password) {
     const salt = await bcrypt.genSalt(10);
     const userPasswordHash = await bcrypt.hash(password, salt)
     await client.connect();
+    console.log("Connected successfully to server");
     // Establish and verify connection
-    await client.db("userdb").collection('user').insertOne({
+    let valid = await client.db("userdb").collection('user').insertOne({
       _id: username, 
       password: userPasswordHash, 
       salt: salt,
       created: new Date() 
     });
 
-    await client.db("userdb").collection('file-list').insertOne({
+    if(valid){
+       await client.db("userdb").collection('file-list').insertOne({
       _id: username, 
       fileList: [], 
       created: new Date() 
     });
+    return true
+    }
 
-    console.log("Connected successfully to server");
-
-  } finally {
+  } catch(err){
+    console.log(err)
+  }
+  finally {
     // Ensures that the client will close when you finish/error
     await client.close();
   }
@@ -241,7 +246,7 @@ const userCheckRegister = async (req, res, next) => {
     }
 }
 
-app.get("/api/auth/register", userCheckRegister, (req, res) => {
+app.all("/api/auth/register", userCheckRegister, (req, res) => {
   const token = jwt.sign({ username: req.username }, process.env.YOUR_SECRET_KEY);
   return res.cookie("at", token, {
       httpOnly: true,
@@ -251,7 +256,7 @@ app.get("/api/auth/register", userCheckRegister, (req, res) => {
     .json({ message: "Login berhasil" });
 });
 
-app.get("/api/auth/login", userCheckLogin, (req, res) => {
+app.all("/api/auth/login", userCheckLogin, (req, res) => {
   const token = jwt.sign({ username: req.username }, process.env.YOUR_SECRET_KEY);
   return res.cookie("at", token, {
       httpOnly: true,
