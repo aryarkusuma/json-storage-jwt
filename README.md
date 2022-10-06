@@ -3,7 +3,8 @@ A simple JWT auth implementation for storing JSON data,
 
 - This test project is using https://json.projectxi.my.id API that ive made with netlify and upstash, these APIs are online.
 - the mongodb database are online, as you could see by what inside the code, it uses my mongodb atlas client uri, so its easier to deploy for testing.
-
+- im trying to reorgenizied the folder structure of the codebase, but i dont think i will have the time for the last minute of the task.
+- 
 ## Tools 
 - Node js - 16
 - Linux - Ubuntu
