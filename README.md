@@ -1,4 +1,3 @@
 # JSON Storage with JWT
-important, base on whatve read, jwt isnt good to be implemented for user session data, all this project are for practices and testing some feature for the future deployment.
-
+A simple JWT auth implementation for storing JSON data.
 This test project is using https://json.projectxi.my.id API, 
