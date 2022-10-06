@@ -7,6 +7,7 @@ A simple JWT auth implementation for storing JSON data,
 ## Tools 
 - Node js - 16
 - Linux - Ubuntu
+- Im using https://hoppscotch.io/ - for the API tester.
 
 ## Guide
 1. npm install
