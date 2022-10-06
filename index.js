@@ -1,10 +1,13 @@
 require('dotenv').config();
 const fetch = require('node-fetch');
 const express = require("express");
+const bodyParser = require('body-parser');
 const cookieParser = require("cookie-parser");
 const jwt = require("jsonwebtoken");
 const app = express();
+
 app.use(cookieParser());
+app.use(bodyParser.json());
 
 async function getJson(req, res, next) { //Retrive Saved Json
   try{
@@ -12,7 +15,38 @@ async function getJson(req, res, next) { //Retrive Saved Json
     const response = await fetch('https://json.projectxi.my.id/api/get-json?id=' + id);
     const data = await response.json();
     console.log(data);
-    res.json(data);
+    return res.json(data);
+  } catch {
+    return res.sendStatus(403);
+  }
+}
+
+async function delJson(req, res, next) { //Retrive Saved Json
+  try{
+    const id = req.query.id;
+    const response = await fetch('https://json.projectxi.my.id/api/del-json?id=' + id);
+    const data = await response.json();
+    console.log(data);
+    return res.json(data);
+  } catch {
+    return res.sendStatus(403);
+  }
+}
+
+async function saveJson(req, res, next) { //Retrive Saved Json
+  try{
+    const response = await fetch("https://633eb34d640af72e3ebcce56--json-saver.netlify.app/api/save-json", 
+    {
+      method: 'POST',
+      headers: {
+        "Content-type": 'application/json',
+      },
+      body: JSON.stringify(req.body),
+    });
+    
+    const data = await response.json();
+    console.log(data);
+    res.json((data));
   } catch {
     return res.sendStatus(403);
   }
@@ -20,7 +54,7 @@ async function getJson(req, res, next) { //Retrive Saved Json
 
 
 const authorization = (req, res, next) => {
-  const token = req.cookies.access_token;
+  const token = req.cookies.at;
   if (!token) {
     return res.sendStatus(403);
   }
@@ -34,23 +68,24 @@ const authorization = (req, res, next) => {
 };
 
 app.get("/", (req, res) => {
-  return res.json({ message: "Welcome To TXT File Storage" });
+  return res.json({ message: "Welcome To JSON File Storage" });
 });
 
 const usercheck = (req, res, next) => {
     //check username and password user
-      if(typeof(req.query.username) == 'undefined'){
-        return res.json({ message: "Unauthorized" });
+      if(typeof(req.query.username) == 'undefined' || typeof(req.query.password) == 'undefined'){ // kita bisa menambahkan logika pemeriksaan nantinya dengan membuat / menggunakan suatu library 
+        return res.json({ message: "Login Failed" });
       } else{
-        req.username = req.query.username
+        req.username = String(req.query.username);
+        req.password = String(req.query.username);
         return next() 
       }
 }
 
-app.get("/login", usercheck, (req, res) => {
+app.post("/login", usercheck, (req, res) => {
   const token = jwt.sign({ username: req.username }, process.env.YOUR_SECRET_KEY);
   return res
-    .cookie("access_token", token, {
+    .cookie("at", token, {
       httpOnly: true,
       secure: true,
     })
@@ -65,13 +100,16 @@ app.get("/auth/profile", authorization, (req, res) => {
 
 app.get("/logout", authorization, (req, res) => {
   return res
-    .clearCookie("access_token")
+    .clearCookie("at")
     .status(200)
-    .json({ message: "Successfully logged out 😏 🍀" });
+    .json({ message: "Anda telah logout!" });
 });
 
-app.get("/get-json", authorization, getJson, (req,res) => {});
+app.get("/service/get-json", authorization, getJson, (req,res) => {});
+app.get("/service/del-json", authorization, delJson, (req,res) => {});
+app.post("/service/save-json", authorization, saveJson, (req,res) => {});
 
+app.post("/service/test", (req,res) => {return res.json({ data: req.body });});
 
 const start = (port) => {
   try {
@@ -84,5 +122,5 @@ const start = (port) => {
   }
 };
 
-start(8888);
+start( process.env.PORT || 3000);
 
