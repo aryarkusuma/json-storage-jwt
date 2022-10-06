@@ -1,4 +1,4 @@
-# JSON Storage with JWT - RESTful API (on progress)
+# JSON Storage with JWT - RESTful API
 A simple JWT auth implementation for storing JSON data, 
 
 - This test project is using https://json.projectxi.my.id API that ive made with netlify and upstash, these APIs are online.
